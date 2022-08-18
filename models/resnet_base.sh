@@ -1,3 +1,6 @@
+# Shell script to execute baseline Resnet50 code on the WACC Euler compute cluster
+# Specifies memory, runtime, and GPUs for job
+
 #!/usr/bin/env zsh
 #SBATCH --job-name=resnet_base
 #SBATCH --partition=research
