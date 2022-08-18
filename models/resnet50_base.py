@@ -1,3 +1,5 @@
+# Model to run baseline (non-adversarial) training and evaluation for ResNet50
+# on the WACC Euler cluster
 # Code adapted with modifications from https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html 
 # License: BSD
 # Author: Sasank Chilamkurthy
@@ -22,12 +24,7 @@ from timm.utils import accuracy, AverageMeter
 cudnn.benchmark = True
 plt.ion()   # interactive mode
 
-# Try to speed up GPU w/ clearing memory
-# torch.cuda.empty_cache()
-# import gc
-# gc.collect()
-
-# Transforms
+# Transforms - resize images to standard 224x224
 data_transforms = {
     'train': transforms.Compose([
         transforms.Resize((224,224)),
@@ -48,7 +45,7 @@ image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
                   data_transforms[x])
                   for x in ['train', 'val']}
 
-dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=16, # batch size so small due to memory constraints
+dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=16, # batch size smaller due to memory constraints
               shuffle=True, num_workers=2)
               for x in ['train', 'val']}
 
@@ -57,37 +54,11 @@ class_names = image_datasets['train'].classes
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-# AUC calculation
-from sklearn.metrics import roc_auc_score
-def cal_auc(outputs, targets):
-    outputs = outputs.squeeze()
-    targets = targets.squeeze()
-
-    if outputs.ndim == 1:
-        # try-except block to avoid incorrect ValueError
-        try:
-            auc = roc_auc_score(targets, outputs)
-        except ValueError:
-            pass
-    else:
-        n_classes = outputs.shape[1]
-        auc = 0
-        for i in range(n_classes):
-            try:
-                label_auc = roc_auc_score(targets==i, outputs[:,i])
-            except ValueError:
-                pass
-            auc += label_auc
-        auc /= n_classes
-    return auc
-
 def train_model(model, criterion, optimizer, scheduler, num_epochs=200):
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
     best_acc = 0.0
-
-    #all_output, all_target = np.array([]), np.array([])
 
     for epoch in range(num_epochs):
         print(f'Epoch {epoch}/{num_epochs - 1}')
@@ -130,11 +101,6 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=200):
 
                 acc1, acc5 = accuracy(outputs,labels,topk=(1,5))
 
-                #all_output.append(outputs.detach().cpu().numpy())
-                #all_target.append(labels.detach().cpu().numpy())
-                #all_output = np.append(all_output, outputs.detach().cpu().numpy())
-                #all_target = np.append(all_target, labels.detach().cpu().numpy())
-
             if phase == 'train':
                 scheduler.step()
 
@@ -146,11 +112,6 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=200):
             print("Top 1 acc: ",acc1)
             print("Top 5 acc: ",acc5)
             print("This epoch takes ", time_elapsed)
-
-            #all_output = np.concatenate(all_output)
-            #all_target = np.concatenate(all_target)
-            #auc = cal_auc(all_output, all_target)
-            #print(f"* AUC: {auc:.5f}")
 
             # deep copy the model
             if phase == 'val' and epoch_acc > best_acc:
