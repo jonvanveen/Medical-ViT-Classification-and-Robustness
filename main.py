@@ -1,3 +1,8 @@
+"""
+Code adapted from main.py at https://github.com/microsoft/Swin-Transformer
+See below attribution
+"""
+
 # --------------------------------------------------------
 # Swin Transformer
 # Copyright (c) 2021 Microsoft
@@ -66,9 +71,6 @@ def parse_option():
 
     # distributed training
     parser.add_argument("--local_rank", type=int, required=True, help='local rank for DistributedDataParallel')
-    
-    # Jon: adding arg to save .pt file for adv. model
-    #parser.add_argument("--save_pth", type=bool)
 
     args, unparsed = parser.parse_known_args()
 
@@ -78,7 +80,6 @@ def parse_option():
 
 
 def main(config):
-    # config.MODEL.NUM_CLASSES = 10
     logger.info(str(config.MODEL.NUM_CLASSES))
     dataset_train, dataset_val, data_loader_train, data_loader_val, mixup_fn = build_loader(config)
 
@@ -91,8 +92,6 @@ def main(config):
     if hasattr(model, 'flops'):
         flops = model.flops()
         logger.info(f"number of GFLOPs: {flops / 1e9}")
-
-    # 10 classes
 
     model.cuda()
     model_without_ddp = model
@@ -115,10 +114,10 @@ def main(config):
         criterion = torch.nn.CrossEntropyLoss()
 
     max_accuracy = 0.0
-    # add Gaussian noise
-    variance=0.025 #0.4, 0.1, .025             #.0025 # .01, .04
+    # Add Gaussian noise for noisy validation data
+    variance=0.025 # variances of 0.4, 0.1, .025         
     noise=True
-    is_clip=False
+    is_clip=False # Clip tensor values between 0 and 1
 
     if config.TRAIN.AUTO_RESUME:
         resume_file = auto_resume_helper(config.OUTPUT)
@@ -147,8 +146,6 @@ def main(config):
     if config.THROUGHPUT_MODE:
         throughput(data_loader_val, model, logger)
         return
-    
-    model.head = nn.Linear(in_features=768, out_features=10, bias=True)
         
     logger.info("Start training")
     start_time = time.time()
@@ -229,10 +226,8 @@ def train_one_epoch(config, model, criterion, data_loader, optimizer, epoch, mix
                 f'mem {memory_used:.0f}MB')
     epoch_time = time.time() - start
     logger.info(f"EPOCH {epoch} training takes {datetime.timedelta(seconds=int(epoch_time))}")
-    #logger.info(f"Saving swin_epoch_{epoch}.pt") 
-    #torch.save(model, "~/Models/saved_swin/swin_epoch_"+str(epoch)+".pt")
 
-# Jon edit: add AUC curve to model
+# Jon edit: add AUC score to model
 from sklearn.metrics import roc_auc_score
 
 @torch.no_grad()
@@ -302,11 +297,13 @@ def validate(config, data_loader, model, variance, is_clip, noise):
     
     all_output = np.concatenate(all_output)
     all_target = np.concatenate(all_target)
-    auc = cal_auc(all_output, all_target)
+    # Calculate AUC
+    auc = cal_auc(all_output, all_target) 
     logger.info(f"* AUC: {auc:.5f}")
     
     return acc1_meter.avg, acc5_meter.avg, loss_meter.avg
-    
+
+# Function to calculate AUC score
 def cal_auc(outputs, targets):
     outputs = outputs.squeeze()
     targets = targets.squeeze()
