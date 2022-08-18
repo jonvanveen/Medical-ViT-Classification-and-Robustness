@@ -2,8 +2,8 @@
 This code was my attempted implementation at testing the adversarial robustness of Swin-T.
 
 Due to time constraints and lack of Pytorch experience, I was unable to implement true
-adversarial robustness on Swin-T in this project. This code does not run, but is included
-in the Github repo to document what I attempted to do. 
+adversarial robustness on Swin-T in this project. See the project report for more details.
+This code does not run, but is included in the repo to document what I attempted to do. 
 
 The script adapts a combination of code from the following sources:
 
