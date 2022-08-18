@@ -1,3 +1,14 @@
+"""
+Code to sort 1000 NIH Chest X-ray images and generate a corresponding
+csv file with their labels, to satisfy requirements of the original
+AutoAttack implementation here: https://github.com/fra31/auto-attack
+This code executes successfully, but the sorted data and labels were
+unused because I was not able to get the AutoAttack code working
+for this project. 
+1000 was chosen as a reasonable amount of tradeoff between 
+performance and computation time.
+"""
+
 import os
 import numpy as np
 import csv
