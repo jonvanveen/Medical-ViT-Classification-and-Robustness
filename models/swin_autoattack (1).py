@@ -1,3 +1,25 @@
+"""
+This code was my attempted implementation at testing the adversarial robustness of Swin-T.
+
+Due to time constraints and lack of Pytorch experience, I was unable to implement true
+adversarial robustness on Swin-T in this project. This code does not run, but is included
+in the Github repo to document what I attempted to do. 
+
+The script adapts a combination of code from the following sources:
+
+Pytorch Dataloader Tutorial https://pytorch.org/tutorials/beginner/data_loading_tutorial.html 
+License: BSD
+Author: Sasank Chilamkurthy
+
+Microsoft Swin Transformer: https://github.com/microsoft/Swin-Transformer
+Swin Transformer
+Copyright (c) 2021 Microsoft
+Licensed under The MIT License [see LICENSE for details]
+Written by Ze Liu
+
+Autoattack: https://github.com/fra31/auto-attack 
+"""
+
 import os
 import io
 import argparse
@@ -18,6 +40,9 @@ import sys
 sys.path.insert(0,'..')
 
 # Load custom dataset with class
+# Dataset loader code adapted from Pytorch Tutorials: https://pytorch.org/tutorials/beginner/data_loading_tutorial.html 
+# License: BSD
+# Author: Sasank Chilamkurthy
 class LoadDataset(Dataset):
 
     def __init__(self, csv_file, root_dir, transform=None):
@@ -42,14 +67,11 @@ class LoadDataset(Dataset):
         img_name = os.path.join(self.root_dir,
                                 self.landmarks_frame.iloc[idx, 0])
         image = io.imread(img_name)
-        #image = image[:, :, 0] # doesn't solve problem
         landmarks = self.landmarks_frame.iloc[idx, 1:]
         landmarks = np.array([landmarks])
-        landmarks = landmarks.astype('float32')#.reshape(-1, 2) # reshape caused error
-        #sample = {'image': image, 'landmarks': landmarks}
+        landmarks = landmarks.astype('float32')
 
         if self.transform:
-            #sample = self.transform(sample)
             image = self.transform(image)
             landmarks = self.transform(landmarks)
 
@@ -88,28 +110,8 @@ if __name__ == '__main__':
     # pass train/test csvs
     parser.add_argument('--csv_tr', type=str)
     parser.add_argument('--csv_ts', type=str)
-
-    # additional unused parser args to satisfy swin script args
-    parser.add_argument('--zip', action='store_true', help='use zipped dataset instead of folder dataset')
-    parser.add_argument('--cache-mode', type=str, default='part', choices=['no', 'full', 'part'],
-                        help='no: no cache, '
-                             'full: cache all data, '
-                             'part: sharding the dataset into nonoverlapping pieces and only cache one piece')
-    parser.add_argument('--pretrained',
-                        help='pretrained weight from checkpoint, could be imagenet22k pretrained weight')
-    parser.add_argument('--resume', help='resume from checkpoint')
-    parser.add_argument('--accumulation-steps', type=int, help="gradient accumulation steps")
-    parser.add_argument('--use-checkpoint', action='store_true',
-                        help="whether to use gradient checkpointing to save memory")
-    parser.add_argument('--disable_amp', action='store_true', help='Disable pytorch amp')
-    parser.add_argument('--amp-opt-level', type=str, choices=['O0', 'O1', 'O2'],
-                        help='mixed precision opt level, if O0, no amp is used (deprecated!)')
-    parser.add_argument('--output', default='output', type=str, metavar='PATH',
-                        help='root of output folder, the full path is <output>/<model_name>/<tag> (default: output)')
-    parser.add_argument('--tag', help='tag of experiment')
-    parser.add_argument('--eval', action='store_true', help='Perform evaluation only')
-    parser.add_argument('--throughput', action='store_true', help='Test throughput only')
     
+    # optimize GPU usage
     gc.collect()
     torch.cuda.empty_cache()
 
@@ -119,9 +121,8 @@ if __name__ == '__main__':
 
     # load model
     model = build_model(config)
-    #model.head = nn.Linear(in_features=768, out_features=10, bias=True)
     ckpt = torch.load(args.model)
-    model.load_state_dict(ckpt,False) # False is risky - added to avoid mismatched state_dicts
+    model.load_state_dict(ckpt,False) 
   
     # fix the head
     # model.head = nn.Linear(in_features=768, out_features=10, bias=True)
@@ -129,36 +130,9 @@ if __name__ == '__main__':
     model.cuda()
     model.eval()
     
-    # Transforms
-# data_transforms = {
-#     'train': transforms.Compose([
-#         transforms.Resize((224,224)),
-#         transforms.ToTensor()#,
-#     ]),
-#     'val': transforms.Compose([
-#         transforms.Resize((224,224)),
-#         transforms.ToTensor()#,
-#     ]),
-# }
-
-# # Train on ISIC Dataset
-# data_dir = '/content/drive/MyDrive/MLSP_Masters/ECE_697/data/isic/isic_org'
-
-# image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
-#                   data_transforms[x])
-#                   for x in ['train', 'val']}
-
-# dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=32, # batch size so small due to memory constraints
-#               shuffle=True, num_workers=2)
-#               for x in ['train', 'val']}
-
-# dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val']}
-# class_names = image_datasets['train'].classes
-
     # load data
     transform_list = [transforms.ToPILImage(), transforms.Resize((224, 224)), transforms.ToTensor()]
     transform_chain = transforms.Compose(transform_list)
-    #item = LoadDataset(csv_file=args.csv, root_dir=args.data_dir, transform=transform_chain)#, download=True)
     item_tr = LoadDataset(csv_file=args.csv_tr, root_dir=args.data_dir+"/train", transform=transform_chain)
     item_ts = LoadDataset(csv_file=args.csv_ts, root_dir=args.data_dir+"/test", transform=transform_chain)
     train_loader = DataLoader(item_tr, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
