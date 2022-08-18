@@ -1,8 +1,8 @@
 """ 
-This code organizes the raw NIH Chest X-ray dataset into two folders (train/test), and
-15 subfolders (for each diagnosis class in the dataset). This file setup is required for
-using the Swin Transformer, one of the models I'm investigating. This dataset contains
-~112,000 frontal-view X-ray images of the chest in .png format. 
+This code organizes the raw ISIC dataset into the Imagenet directory structure, 
+with two folders (train/test), and 15 subfolders (for each diagnosis class in the dataset). 
+This file setup was required for using the Swin-T and the Resnet50. This dataset contains
+~71,000 images of benign and malignant skin lesions in .png format. 
 """
 
 import os
@@ -19,13 +19,14 @@ with open('metadata.csv', mode='r') as csv_file:
     train_len = np.ceil(0.8*len(rows))
 
 raw_imgs = os.listdir('isic_raw')
-# For ISIC dataset, only using classes with 250+ samples, for 10 total classes
+# For ISIC dataset, only use the top 10 classes, for a more balanced
+# dataset relative to the NIH Chest X-ray
 label_list = ['nevus','melanoma','basal cell carcinoma','seborrheic keratosis','pigmented benign keratosis','actinic keratosis','squamous cell carcinoma','solar lentigo','vascular lesion','dermatofibroma']
 
 file_count=0
 for row in rows: 
     labelnum = 1
-    for label in label_list: # Multi-label images are sorted into multiple individual classes
+    for label in label_list: 
         # 80-20 train-test split
 
         if file_count<train_len: # training data
