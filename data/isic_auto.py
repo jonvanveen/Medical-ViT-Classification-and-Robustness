@@ -1,3 +1,13 @@
+"""
+Code to sort 1000 ISIC images and generate a corresponding
+csv file with their labels, to satisfy requirements of the original
+AutoAttack implementation here: https://github.com/fra31/auto-attack
+This code executes successfully, but the sorted data and labels were
+unused because I was not able to get the AutoAttack code working
+for this project. 
+1000 was chosen as a reasonable amount of tradeoff between 
+performance and computation time.
+"""
 
 import os
 import numpy as np
@@ -12,7 +22,7 @@ with open('metadata.csv', mode='r') as csv_file:
     random.shuffle(rows)
 
 label_list = ['nevus','melanoma','basal cell carcinoma','seborrheic keratosis','pigmented benign keratosis','actinic keratosis','squamous cell carcinoma','solar lentigo','vascular lesion','dermatofibroma']
-thous = rows[0:1700]
+thous = rows[0:1000]
 
 with open('isic_auto_train.csv', mode='w') as isic_auto_train:
     with open('isic_auto_test.csv', mode='w') as isic_auto_test:
