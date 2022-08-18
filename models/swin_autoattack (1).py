@@ -16,8 +16,6 @@ Swin Transformer
 Copyright (c) 2021 Microsoft
 Licensed under The MIT License [see LICENSE for details]
 Written by Ze Liu
-
-Autoattack: https://github.com/fra31/auto-attack 
 """
 
 import os
@@ -123,9 +121,6 @@ if __name__ == '__main__':
     model = build_model(config)
     ckpt = torch.load(args.model)
     model.load_state_dict(ckpt,False) 
-  
-    # fix the head
-    # model.head = nn.Linear(in_features=768, out_features=10, bias=True)
     
     model.cuda()
     model.eval()
@@ -143,11 +138,6 @@ if __name__ == '__main__':
     print(x for (x,y) in test_loader)
     print(type(x) for (x,y) in test_loader)
 
-    # load attack    
-    # from autoattack import AutoAttack
-    # adversary = AutoAttack(model, norm=args.norm, eps=args.epsilon, log_path=args.log_path,
-    #     version=args.version)
-    
     from art.attacks.evasion import AutoAttack
     from art.estimators.classification import PyTorchClassifier
     
@@ -160,21 +150,7 @@ if __name__ == '__main__':
         nb_classes=1000,
     )
     print("classifier init: ",classifier.nb_classes)
-
-    
-    # x = torch.randn(2, 3, 224, 224)
-    # print(classifier.predict(x).shape)
-    # exit()
-
     print("Preparing data...")
-    
-    # l = [x for (x, y) in test_loader]
-    # print("l: ",l)
-    # l = [y for (x, y) in test_loader]
-    # print("l: ",l)
-    # x_test = torch.cat(l, 0)
-    # y_test = torch.cat(l, 0)
-    
     lxtr, lytr = [],[]
     for i, batch in enumerate(train_loader):
         x, y = batch["image"], batch["landmarks"]
@@ -189,93 +165,45 @@ if __name__ == '__main__':
         lxts.append(x)
         lyts.append(y)
         
-    x_train, y_train = torch.cat(lxtr, 0), torch.cat(lytr, 0) #torch.FloatTensor(lxtr), torch.FloatTensor(lytr)
+    x_train, y_train = torch.cat(lxtr, 0), torch.cat(lytr, 0) 
     print(torch.flatten(x_train).size())
-    x_test, y_test = torch.cat(lxts, 0), torch.cat(lyts, 0)#torch.FloatTensor(lxts), torch.FloatTensor(lyts)
+    x_test, y_test = torch.cat(lxts, 0), torch.cat(lyts, 0)
     print("Data prepared.")
-    # print('xtest: ',x_test)
-    print('xtest shape ', x_test.shape)
     
-    # print(y_train)
-    print(y_train.size())
-    # print("")
+    # Fixing incorrect dimensions of tensor for input into ART classifier
     y_train = y_train[:799,:,0,0]
     x_ = torch.zeros(799,10)
     for i in range(0,799):
         x_[i][int(y_train[i])-1] = 1
     y_train = x_
     
-    print(y_test.shape)
     y_test = y_test[:220,:,0,0]
     x_ = torch.zeros(220,10)
     for i in range(0,220):
         x_[i][int(y_test[i])-1] = 1
     y_test = x_
-    print(y_test.size())
-    #print(y_test)
     
     print("Fitting classifier...")
-    # classifier.fit(x_train.detach().cpu().numpy(), y_train.detach().cpu().numpy(), batch_size=64, training_mode=True, nb_epochs=1)
+    classifier.fit(x_train.detach().cpu().numpy(), y_train.detach().cpu().numpy(), batch_size=64, training_mode=True, nb_epochs=5)
     x_train = x_train.detach().cpu().numpy()
     y_train = y_train.detach().cpu().numpy()
     
-    print('x_train ',np.shape(x_train))
-    print('y_train ',np.shape(y_train))
-    
     logits = classifier.predict(x)
-    print(logits.shape)
-    print(logits.argmax(1)) # or 0
-    print(y)
-    
-    
-    classifier.fit(x_train, y_train, batch_size=64, training_mode=True, nb_epochs=5)
-    print("classifier fit: ",classifier.nb_classes)
-    print("Classifier fitted.")
     
     predictions = classifier.predict(x_test.detach().cpu().numpy(),training_mode=False)
     print("classifier pred: ",classifier.nb_classes)
     print('predictions: ',predictions) 
     print('shape: ',predictions.shape)
-    #accuracy = np.sum((abs(predictions - y_test.detach().cpu().numpy())/2))/np.max(y_test.shape)
     accuracy = np.sum(np.argmax(predictions[:10,:], axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
     print("Accuracy on benign test examples: {}%".format(accuracy * 100))
     
     # Generate adversarial test examples
     attack = AutoAttack(estimator=classifier, eps=0.2)
     print('x test: ',type(x_test), x_test)
-    x_test_adv = attack.generate(x=x_test)#.detach().cpu().numpy())
+    x_test_adv = attack.generate(x=x_test)
     
     # Evaluate the ART classifier on adversarial test examples
     predictions = classifier.predict(x_test_adv)
-    #accuracy = np.sum((abs(predictions - y_test.detach().cpu().numpy())/2))/np.max(y_test.shape)
     accuracy = np.sum(np.argmax(predictions, axis=1) == np.argmax(y_test, axis=1)) / len(y_test)
     print("Accuracy on adversarial test examples: {}%".format(accuracy * 100))
     
-    #l = [x for (x, y) in test_loader]
-    #print("l: ",l,type(l[0]))
-    # l = [y for (x, y) in test_loader]
-    # y_test = torch.cat(l, 0)
-
-    # example of custom version
-    # if args.version == 'custom':
-    #     adversary.attacks_to_run = ['apgd-ce', 'fab']
-    #     adversary.apgd.n_restarts = 2
-    #     adversary.fab.n_restarts = 2
-
-    # run attack and save images
-    # with torch.no_grad():
-    #     if not args.individual:
-    #         adv_complete = adversary.run_standard_evaluation(x_test[:args.n_ex], y_test[:args.n_ex],
-    #             bs=args.batch_size)
-
-    #         torch.save({'adv_complete': adv_complete}, '{}/{}_{}_1_{}_eps_{:.5f}.pth'.format(
-    #             args.save_dir, 'aa', args.version, adv_complete.shape[0], args.epsilon))
-
-    #     else:
-    #         # individual version, each attack is run on all test points
-    #         adv_complete = adversary.run_standard_evaluation_individual(x_test[:args.n_ex],
-    #                 y_test[:args.n_ex], bs=args.batch_size)
-
-    #         torch.save(adv_complete, '{}/{}_{}_individual_1_{}_eps_{:.5f}_plus_{}_cheap_{}.pth'.format(
-    #             args.save_dir, 'aa', args.version, args.n_ex, args.epsilon))
-
