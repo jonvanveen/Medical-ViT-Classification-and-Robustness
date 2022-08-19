@@ -7,7 +7,7 @@ My project investigated classification of two deep learning models, [Swin-T](htt
 
 The above links are to the original model implementations for Swin-T and ResNet50. Scripts that I modified from the Swin-T repo are included under the Models directory. I ran Swin-T and ResNet50 on a compute cluster (for which shell scripts can be found under Models). I also ran Swin-T on Google Colab via the Swin.ipynb notebook. Data organization was a major component of this project, so under the Data directory I have included scripts I used for data organization. Project results can be found in the results folder, with discussion available in the project report.
 
-Also included is a small subset of the ISIC images with three classes (the full dataset has ten classes). The ResNet50 I used can be trained on this toy dataset in the Resnet50_Demo.ipynb notebook. To run the code:
+Also included is a very small subset of the ISIC images with three classes (the full dataset has ten classes). The ResNet50 I used can be trained on this toy dataset in the Resnet50_Demo.ipynb notebook. To run the code:
 1) Download the notebook from this repo and upload it to Google Drive. Instructions on how to download an individual file from Github can be found [here.](https://www.wikihow.com/Download-a-File-from-GitHub)
 2) Click on the isic_example_data directory, then copy the URL in your browser to [this tool](https://download-directory.github.io/) to download the dataset locally. 
 3) Open the notebook with Colab and follow the remaining steps there.
