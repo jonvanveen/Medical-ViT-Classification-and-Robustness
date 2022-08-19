@@ -1,8 +1,10 @@
 """ 
-This code organizes the raw NIH Chest X-ray dataset into two folders (train/test), and
-15 subfolders (for each diagnosis class in the dataset). This file setup is required for
-using the Swin Transformer, one of the models I'm investigating. This dataset contains
-~112,000 frontal-view X-ray images of the chest in .png format. 
+This code organizes the raw NIH Chest X-ray dataset according to the Imagenet directory
+structure: two folders (train/test), and 15 subfolders (for each diagnosis class in 
+the dataset). This file setup is required by the Swin-T and ResNet50 models this project
+investigates. The dataset contains ~112,000 frontal-view X-ray images of the chest 
+in .png format. This code also produces an unused labels csv file for the AutoAttack 
+framework's requirements.
 """
 
 import os
@@ -29,7 +31,7 @@ with open('autoattack_labels.csv',mode='w') as autoattack_csv:
         labelnum = 1
         for label in label_list: # Multi-label images are sorted into multiple individual classes
 
-            if file_count<train_len:#89698: # training data
+            if file_count<train_len: # training data
                 class_path = 'imagenet/train/class'+str(labelnum)
                 if label in row[1]:
                     shutil.copy('raw_imgs/'+row[0], class_path)
